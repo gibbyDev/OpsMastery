@@ -1,0 +1,50 @@
+# Go binary and build files
+bin/
+obj/
+*.exe
+*.exe~
+*.out
+*.test
+
+.env
+
+air.toml
+
+go.mod
+go.sum
+
+random.txt
+
+TODO.txt
+
+# Go-specific files
+/go.sum
+/go.mod
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.iml
+
+# macOS system files
+.DS_Store
+
+# Linux system files
+*~
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.swp
+*.bak
+*.tmp
+
+# Dependency directories
+vendor/

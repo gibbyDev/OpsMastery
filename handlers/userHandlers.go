@@ -17,12 +17,6 @@ func ListUsers(c *fiber.Ctx) error {
 
 func GetUserByID(c *fiber.Ctx) error {
     id := c.Params("id")
-    userID, _ := c.Locals("userID").(uint)
-    userRole, _ := c.Locals("userRole").(string) 
-
-    if id != strconv.Itoa(int(userID)) && userRole != "Admin" && userRole != "Moderator" {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
 
     var user models.User
     if err := db.First(&user, id).Error; err != nil {
@@ -33,11 +27,6 @@ func GetUserByID(c *fiber.Ctx) error {
 
 func DeleteUserByID(c *fiber.Ctx) error {
     id := c.Params("id")
-    userRole, _ := c.Locals("userRole").(string)
-
-    if userRole != "Admin" && userRole != "Moderator" {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
 
     userIDParsed, err := strconv.ParseUint(id, 10, 32)
     if err != nil {
@@ -56,12 +45,6 @@ func DeleteUserByID(c *fiber.Ctx) error {
 
 func UpdateUserByID(c *fiber.Ctx) error {
     id := c.Params("id")
-    userID, _ := c.Locals("userID").(uint) 
-    userRole, _ := c.Locals("userRole").(string) 
-
-    if id != strconv.Itoa(int(userID)) && userRole != "Admin" && userRole != "Moderator" {
-        return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Access denied"})
-    }
 
     var user models.User
     if err := c.BodyParser(&user); err != nil {

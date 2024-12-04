@@ -2,10 +2,11 @@ package main
 
 import (
     "log"
-    "OpsMastery/initialization"
-    "OpsMastery/handlers"
-    "OpsMastery/routes"
+    "github.com/gibbyDev/OpsMastery/initialization"
+    "github.com/gibbyDev/OpsMastery/handlers"
+    "github.com/gibbyDev/OpsMastery/routes"
     "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/fiber/v2/middleware/cors"
     "gorm.io/gorm"
 )
 
@@ -21,7 +22,16 @@ func init() {
 }
 
 func main() {
+
     app := fiber.New()
+
+    app.Use(cors.New(cors.Config{
+        AllowOrigins:     "http://localhost:3000",
+        AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+        AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+        AllowCredentials: true,
+        MaxAge:           300,
+    }))
 
     routes.SetupRoutes(app, db)
 

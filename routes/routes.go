@@ -9,32 +9,40 @@ import (
 
 func SetupRoutes(app *fiber.App, db *gorm.DB) {
     api := app.Group("/api/v1")
-    {
-        api.Get("/", func(c *fiber.Ctx) error {
-            return c.SendString("Server is running!")
-        })
+    
+    // Public routes (no authentication required)
+    api.Get("/", func(c *fiber.Ctx) error {
+        return c.SendString("Server is running!")
+    })
+    api.Post("/signup", handlers.SignUp)
+    api.Post("/signin", handlers.SignIn)
+    api.Get("/verify/:token", handlers.VerifyEmail)
+    api.Post("/forgot-password", handlers.RequestPasswordReset)
+    api.Post("/reset-password/:token", handlers.ResetPassword)
 
-        api.Post("/signup", handlers.SignUp)
-        api.Post("/signin", handlers.SignIn)
+    // Protected routes (require authentication)
+    protected := api.Group("")
+    protected.Use(middleware.JWTMiddleware)
 
-        api.Use(middleware.JWTMiddleware)
+    // Admin routes
+    protected.Delete("/users/:id", middleware.OnlyAdmin(db, handlers.DeleteUserByID))
+    protected.Put("/users/:id/role", middleware.OnlyAdmin(db, handlers.SetUserRole))
 
-        api.Post("/signout", handlers.SignOut)
+    // Moderator routes
+    protected.Get("/users", middleware.OnlyModerator(db, handlers.ListUsers))
+    protected.Get("/users/:id", middleware.OnlyModerator(db, handlers.GetUserByID))
+    protected.Put("/users/:id", middleware.OnlyModerator(db, handlers.UpdateUserByID))
 
-        api.Delete("/users/:id", middleware.OnlyAdmin(db, handlers.DeleteUserByID))
-        api.Put("/users/:id/role", middleware.OnlyAdmin(db, handlers.SetUserRole))
+    // User routes
+    protected.Get("/users/me", middleware.OnlyUser(db, handlers.GetCurrentUser))
+    protected.Put("/users/me", middleware.OnlyUser(db, handlers.UpdateCurrentUser))
 
-        api.Get("/users", middleware.OnlyModerator(db, handlers.ListUsers))
-        api.Get("/users/:id", middleware.OnlyModerator(db, handlers.GetUserByID))
-        api.Put("/users/:id", middleware.OnlyModerator(db, handlers.UpdateUserByID))
-
-        api.Get("/users/me", middleware.OnlyUser(db, handlers.GetCurrentUser))
-        api.Put("/users/me", middleware.OnlyUser(db, handlers.UpdateCurrentUser)) 
-
-        api.Post("/ticket", handlers.CreateTicket)
-        api.Get("/tickets", handlers.ListTickets)
-        api.Get("/ticket/:id", handlers.GetTicketByID)
-        api.Put("/ticket/:id", handlers.UpdateTicketByID)
-        api.Delete("/ticket/:id", handlers.DeleteTicketByID)
-    }
+    // Other protected routes
+    protected.Post("/signout", handlers.SignOut)
+    protected.Post("/auth/refresh", handlers.RefreshToken)
+    protected.Post("/ticket", handlers.CreateTicket)
+    protected.Get("/tickets", handlers.ListTickets)
+    protected.Get("/ticket/:id", handlers.GetTicketByID)
+    protected.Put("/ticket/:id", handlers.UpdateTicketByID)
+    protected.Delete("/ticket/:id", handlers.DeleteTicketByID)
 }

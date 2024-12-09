@@ -8,6 +8,7 @@ import (
     "github.com/gofiber/fiber/v2"
     "github.com/gofiber/fiber/v2/middleware/cors"
     "gorm.io/gorm"
+    "os"
 )
 
 var db *gorm.DB
@@ -26,7 +27,7 @@ func main() {
     app := fiber.New()
 
     app.Use(cors.New(cors.Config{
-        AllowOrigins:     "http://localhost:3000",
+        AllowOrigins:     os.Getenv("FRONTEND_URL"),
         AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
         AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
         AllowCredentials: true,

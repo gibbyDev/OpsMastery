@@ -8,6 +8,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"github.com/gibbyDev/OpsMastery/utils"
 	"time"
+	"fmt"
+	// "os"
 )
 
 func SignUp(c *fiber.Ctx) error {
@@ -215,13 +217,21 @@ func RequestPasswordReset(c *fiber.Ctx) error {
     user.ResetToken = resetToken
     user.ResetTokenExpiry = time.Now().Add(1 * time.Hour)
 
+    // Log the token being set
+    log.Printf("Setting reset token for user %s: %s", user.Email, resetToken)
+
     if err := db.Save(&user).Error; err != nil {
+        log.Printf("Error saving user with reset token: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to process password reset",
         })
     }
 
+    // Add this log right before SendPasswordResetEmail
+    log.Printf("About to send reset email with token: %s", resetToken)
+    
     if err := utils.SendPasswordResetEmail(user.Email, resetToken); err != nil {
+        log.Printf("Error sending reset email: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to send reset email",
         })
@@ -233,41 +243,82 @@ func RequestPasswordReset(c *fiber.Ctx) error {
 }
 
 func ResetPassword(c *fiber.Ctx) error {
-    token := c.Params("token")
-    var input struct {
-        Password string `json:"password"`
+    var body struct {
+        ResetToken  string `json:"reset_token"`
+        NewPassword string `json:"new_password"`
     }
-
-    if err := c.BodyParser(&input); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
-    }
-
-    var user models.User
-    if err := db.Where("reset_token = ? AND reset_token_expiry > ?", token, time.Now()).First(&user).Error; err != nil {
+    
+    // Log the raw request body
+    rawBody := string(c.Body())
+    log.Printf("Received reset password request body: %s", rawBody)
+    
+    if err := c.BodyParser(&body); err != nil {
+        log.Printf("Error parsing request body: %v", err)
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Invalid or expired reset token",
+            "error": "Invalid request body",
         })
     }
 
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+    log.Printf("Reset token: %s", body.ResetToken)
+    
+    // Validate the token
+    var user models.User
+    if err := db.Where("reset_token = ?", body.ResetToken).First(&user).Error; err != nil {
+        log.Printf("No user found with reset token: %s, error: %v", body.ResetToken, err)
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid reset token",
+        })
+    }
+
+    // Check if token has expired
+    if user.ResetTokenExpiry.Before(time.Now()) {
+        log.Printf("Token expired. Expiry: %v, Current time: %v", user.ResetTokenExpiry, time.Now())
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Reset token has expired",
+        })
+    }
+
+    // Hash the new password
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), bcrypt.DefaultCost)
     if err != nil {
+        log.Printf("Error hashing password: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-            "error": "Failed to process new password",
+            "error": "Failed to hash password",
         })
     }
 
+    // Update user's password and clear reset token
     user.Password = string(hashedPassword)
     user.ResetToken = ""
     user.ResetTokenExpiry = time.Time{}
 
     if err := db.Save(&user).Error; err != nil {
+        log.Printf("Error saving user: %v", err)
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Failed to update password",
         })
     }
 
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
-        "message": "Password has been reset successfully",
+    log.Printf("Password successfully reset for user: %s", user.Email)
+    return c.JSON(fiber.Map{
+        "message": "Password successfully reset",
     })
+}
+
+func validateResetToken(token string) (bool, error) {
+    var user models.User
+    if err := db.Where("reset_token = ?", token).First(&user).Error; err != nil {
+        log.Printf("No user found with reset token: %s, error: %v", token, err)
+        return false, err
+    }
+
+    // Check if token has expired
+    if user.ResetTokenExpiry.Before(time.Now()) {
+        log.Printf("Token expired. Expiry: %v, Current time: %v", user.ResetTokenExpiry, time.Now())
+        return false, fmt.Errorf("reset token has expired")
+    }
+
+    log.Printf("Token validated successfully for user: %s", user.Email)
+    return true, nil
 }
 

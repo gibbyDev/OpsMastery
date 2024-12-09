@@ -18,7 +18,7 @@ func SetupRoutes(app *fiber.App, db *gorm.DB) {
     api.Post("/signin", handlers.SignIn)
     api.Get("/verify/:token", handlers.VerifyEmail)
     api.Post("/forgot-password", handlers.RequestPasswordReset)
-    api.Post("/reset-password/:token", handlers.ResetPassword)
+    api.Post("/reset-password", handlers.ResetPassword)
 
     // Protected routes (require authentication)
     protected := api.Group("")

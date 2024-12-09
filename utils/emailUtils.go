@@ -4,6 +4,7 @@ import (
     "fmt"
     "net/smtp"
     "os"
+    "log"
 )
 
 func SendVerificationEmail(to string, token string) error {
@@ -45,7 +46,9 @@ func SendPasswordResetEmail(to string, token string) error {
     smtpHost := os.Getenv("SMTP_HOST")
     smtpPort := os.Getenv("SMTP_PORT")
 
-    resetLink := fmt.Sprintf("%s/api/v1/reset-password/%s", os.Getenv("APP_URL"), token)
+    resetLink := fmt.Sprintf("%s/auth/reset-password?reset_token=%s", os.Getenv("FRONTEND_URL"), token)
+
+    log.Printf("Generated reset link: %s", resetLink)
 
     subject := "Reset Your Password"
     body := fmt.Sprintf(`
@@ -71,4 +74,4 @@ func SendPasswordResetEmail(to string, token string) error {
     addr := fmt.Sprintf("%s:%s", smtpHost, smtpPort)
 
     return smtp.SendMail(addr, auth, from, []string{to}, []byte(message))
-} 
+}

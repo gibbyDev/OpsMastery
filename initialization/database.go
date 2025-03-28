@@ -1,7 +1,7 @@
 package initialization
 
 import (
-	"log"
+    "log"
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
     "github.com/gibbyDev/OpsMastery/models"
@@ -9,35 +9,41 @@ import (
 
 func SetupDatabase() *gorm.DB {
 
-	dsn := "host=" + GetEnv("DB_HOST") +
-		" user=" + GetEnv("DB_USER") +
-		" password=" + GetEnv("DB_PASSWORD") +
-		" dbname=" + GetEnv("DB_NAME") +
-		" port=" + GetEnv("DB_PORT") +
-		" sslmode=" + GetEnv("DB_SSLMODE") +
-		" TimeZone=" + GetEnv("DB_TIMEZONE")
+    dbHost := GetEnv("DB_HOST")
+    dbUser := GetEnv("DB_USER")
+    dbPassword := GetEnv("DB_PASSWORD")
+    dbName := GetEnv("DB_NAME")
+    dbPort := GetEnv("DB_PORT")
+    dbSSLMode := GetEnv("DB_SSLMODE")
+    dbTimeZone := GetEnv("DB_TIMEZONE")
 
-	log.Println("Connecting to database with DSN:", dsn)
+    dsn := "host=" + dbHost +
+        " user=" + dbUser +
+        " password=" + dbPassword +
+        " dbname=" + dbName +
+        " port=" + dbPort +
+        " sslmode=" + dbSSLMode +
+        " TimeZone=" + dbTimeZone
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    if err != nil {
+        log.Fatalf("failed to connect to database: %v", err)
+    }
 
-	err = db.AutoMigrate(&models.User{})
-	if err != nil {
-		log.Fatalf("failed to auto migrate: %v", err)
-	}
+    err = db.AutoMigrate(&models.User{})
+    if err != nil {
+        log.Fatalf("failed to auto migrate User model: %v", err)
+    }
 
-	err = db.AutoMigrate(&models.Ticket{})
-	if err != nil {
-		log.Fatalf("failed to auto migrate: %v", err)
-	}
+    err = db.AutoMigrate(&models.Ticket{})
+    if err != nil {
+        log.Fatalf("failed to auto migrate Ticket model: %v", err)
+    }
 
-	err = db.AutoMigrate(&models.Client{})
-	if err != nil {
-		log.Fatalf("failed to auto migrate: %v", err)
-	}
-	log.Println("Database connected successfully!")
-	return db
-} 
+    err = db.AutoMigrate(&models.Client{})
+    if err != nil {
+        log.Fatalf("failed to auto migrate Client model: %v", err)
+    }
+
+    return db
+}

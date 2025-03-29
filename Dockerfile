@@ -5,14 +5,11 @@ WORKDIR /app
 # Initialize a new Go module inside the container
 RUN go mod init opsmastery
 
-# Download dependencies (if any are added later)
-RUN go mod tidy
-
 # Copy the rest of the files
 COPY . .
 
-# Copy the .env file into the container
-COPY .env /app/.env
+# Download dependencies
+RUN go mod tidy
 
 # Build the application
 RUN go build -o /app/main .

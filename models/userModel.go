@@ -11,8 +11,8 @@ type User struct {
     Password          string `json:"password"`
     Name              string `json:"name"`
     Role              string `json:"role" gorm:"default:Admin"`
-    Active            bool   `json:"active" gorm:"default:true"`
-    VerificationToken string `json:"-" gorm:"unique"`
-    ResetToken        string `json:"-" gorm:"unique"`
+    Active            bool   `json:"active" gorm:"default:false"`
+    VerificationToken string `json:"-"`
+    ResetToken        string `json:"-" "`
     ResetTokenExpiry  time.Time `json:"-"`
 }

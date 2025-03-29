@@ -2,14 +2,14 @@ package utils
 
 import (
     "crypto/rand"
-    "encoding/base64"
+    "encoding/hex"
 )
 
 func GenerateRandomToken() string {
-    b := make([]byte, 32)
-    _, err := rand.Read(b)
-    if (err != nil) {
-        return ""
+    bytes := make([]byte, 16) // 16 bytes = 128 bits
+    _, err := rand.Read(bytes)
+    if err != nil {
+        panic("Failed to generate random token")
     }
-    return base64.URLEncoding.EncodeToString(b)
+    return hex.EncodeToString(bytes)
 }

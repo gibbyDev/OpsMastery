@@ -5,7 +5,7 @@ import (
     "os"
     "time"
     "github.com/golang-jwt/jwt/v4"
-    "github.com/gibbyDev/OpsMastery/models"
+    "OpsMastery/ticket-service/models"
 )
 
 var (

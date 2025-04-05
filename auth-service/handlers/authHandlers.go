@@ -4,13 +4,20 @@ import (
     "log"
 	"net/http"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gibbyDev/OpsMastery/models"
+	"OpsMastery/auth-service/models"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/gibbyDev/OpsMastery/utils"
+	"OpsMastery/auth-service/utils"
+    "gorm.io/gorm"
 	"time"
 	"fmt"
 	// "os"
 )
+
+var db *gorm.DB
+
+func SetDB(database *gorm.DB) {
+    db = database
+}
 
 func SignUp(c *fiber.Ctx) error {
     var user models.User
@@ -59,44 +66,36 @@ func SignIn(c *fiber.Ctx) error {
         Password string `json:"password"`
     }
 
+    // Parse the input
     if err := c.BodyParser(&userInput); err != nil {
         return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
     }
 
+    // Find the user by email
     var user models.User
     if err := db.Where("email = ?", userInput.Email).First(&user).Error; err != nil {
         return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid email or password"})
     }
 
+    // Check if the user is active
     if !user.Active {
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
             "error": "Please verify your email before signing in",
         })
     }
 
+    // Compare the provided password with the stored hash
     if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userInput.Password)); err != nil {
         return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid email or password"})
     }
 
+    // Generate access and refresh tokens
     accessToken, refreshToken, err := utils.GenerateJWT(user)
     if err != nil {
         return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Could not generate tokens"})
     }
 
-    log.Printf("Setting access token: %s", accessToken)
-    log.Printf("Setting refresh token: %s", refreshToken)
-
-    c.Cookie(&fiber.Cookie{
-        Name:     "access_token",
-        Value:    accessToken,
-        Expires:  time.Now().Add(15 * time.Minute),
-        HTTPOnly: true,
-        Secure:   false,
-        SameSite: "None",
-        Domain:   "",
-        Path:     "/",
-    })
-
+    // Set the refresh token as a cookie
     c.Cookie(&fiber.Cookie{
         Name:     "refresh_token",
         Value:    refreshToken,
@@ -104,11 +103,20 @@ func SignIn(c *fiber.Ctx) error {
         HTTPOnly: true,
         Secure:   false,
         SameSite: "None",
-        Domain:   "",
         Path:     "/",
     })
 
-    return c.Status(http.StatusOK).JSON(fiber.Map{"message": "Sign in successful"})
+    // Return the access token and user details in the JSON response
+    return c.Status(http.StatusOK).JSON(fiber.Map{
+        "message": "Sign in successful",
+        "access_token": accessToken, // Send the access token in the response
+        "user": fiber.Map{
+            "id":    user.ID,
+            "email": user.Email,
+            "name":  user.Name,
+            "role":  user.Role,
+        },
+    })
 }
 
 func SignOut(c *fiber.Ctx) error {
@@ -145,30 +153,28 @@ func RefreshToken(c *fiber.Ctx) error {
     }
 
     // Generate new tokens
-    accessToken, refreshToken, err := utils.GenerateJWT(user)
+    accessToken, newRefreshToken, err := utils.GenerateJWT(user)
     if err != nil {
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+        return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
             "error": "Could not generate tokens",
         })
     }
 
-    // Set new cookies
-    c.Cookie(&fiber.Cookie{
-        Name:     "access_token",
-        Value:    accessToken,
-        Expires:  time.Now().Add(15 * time.Minute),
-        HTTPOnly: true,
-    })
-
+    // Set new refresh token as a cookie
     c.Cookie(&fiber.Cookie{
         Name:     "refresh_token",
-        Value:    refreshToken,
+        Value:    newRefreshToken,
         Expires:  time.Now().Add(7 * 24 * time.Hour),
         HTTPOnly: true,
+        Secure:   false,
+        SameSite: "None",
+        Path:     "/",
     })
 
-    return c.Status(fiber.StatusOK).JSON(fiber.Map{
+    // Return the new access token in the response
+    return c.Status(http.StatusOK).JSON(fiber.Map{
         "message": "Tokens refreshed successfully",
+        "access_token": accessToken, // Send the new access token
     })
 }
 

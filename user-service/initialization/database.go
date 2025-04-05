@@ -4,7 +4,7 @@ import (
     "log"
     "gorm.io/driver/postgres"
     "gorm.io/gorm"
-    "github.com/gibbyDev/OpsMastery/models"
+    "OpsMastery/user-service/models"
 )
 
 func SetupDatabase() *gorm.DB {
@@ -35,15 +35,15 @@ func SetupDatabase() *gorm.DB {
         log.Fatalf("failed to auto migrate User model: %v", err)
     }
 
-    err = db.AutoMigrate(&models.Ticket{})
-    if err != nil {
-        log.Fatalf("failed to auto migrate Ticket model: %v", err)
-    }
+    // err = db.AutoMigrate(&models.Ticket{})
+    // if err != nil {
+    //     log.Fatalf("failed to auto migrate Ticket model: %v", err)
+    // }
 
-    err = db.AutoMigrate(&models.Client{})
-    if err != nil {
-        log.Fatalf("failed to auto migrate Client model: %v", err)
-    }
+    // err = db.AutoMigrate(&models.Client{})
+    // if err != nil {
+    //     log.Fatalf("failed to auto migrate Client model: %v", err)
+    // }
 
     return db
 }

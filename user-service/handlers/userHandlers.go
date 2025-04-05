@@ -4,8 +4,15 @@ import (
     "net/http"
     "strconv"
     "github.com/gofiber/fiber/v2"
-    "github.com/gibbyDev/OpsMastery/models"
+    "OpsMastery/user-service/models"
+    "gorm.io/gorm"
 )
+
+var db *gorm.DB
+
+func SetDB(database *gorm.DB) {
+    db = database
+}
 
 func ListUsers(c *fiber.Ctx) error {
     var users []models.User

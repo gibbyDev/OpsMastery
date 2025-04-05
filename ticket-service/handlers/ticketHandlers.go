@@ -4,9 +4,15 @@ import (
 	"net/http"
 	"strconv"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gibbyDev/OpsMastery/models"
+	"OpsMastery/ticket-service/models"
 	"gorm.io/gorm"
 )
+
+var db *gorm.DB
+
+func SetDB(database *gorm.DB) {
+    db = database
+}
 
 func CreateTicket(c *fiber.Ctx) error {
 	var ticket models.Ticket
@@ -21,11 +27,24 @@ func CreateTicket(c *fiber.Ctx) error {
 }
 
 func ListTickets(c *fiber.Ctx) error {
-	var tickets []models.Ticket
-	if err := db.Find(&tickets).Error; err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	var tickets []struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		CreatedAt   string `json:"created_at"`
+		UserName    string `json:"user_name"`
 	}
-	return c.JSON(tickets)
+
+	// Query tickets and join with the User model to get the user's name
+	if err := db.Table("tickets").
+		Select("tickets.title, tickets.description, tickets.created_at, users.name AS user_name").
+		Joins("JOIN users ON users.id = tickets.user_id").
+		Scan(&tickets).Error; err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch tickets",
+		})
+	}
+
+	return c.Status(http.StatusOK).JSON(tickets)
 }
 
 func GetTicketByID(c *fiber.Ctx) error {
